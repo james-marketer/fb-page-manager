@@ -1,0 +1,198 @@
+<%- include('../partials/header') %>
+
+<div class="card-row">
+  <h1><%= page.name %></h1>
+  <a class="button secondary" href="/pages">&larr; All pages</a>
+</div>
+
+<div class="card">
+  <div class="card-row">
+    <div>
+      <span class="badge <%= page.enabled ? 'on' : 'off' %>"><%= page.enabled ? 'Bot on' : 'Bot off' %></span>
+      <span class="muted">Page ID <%= page.id %></span>
+    </div>
+    <div>
+      <form class="inline" method="POST" action="/pages/<%= page.id %>/toggle">
+        <button type="submit" class="secondary"><%= page.enabled ? 'Turn off' : 'Turn on' %></button>
+      </form>
+      <form class="inline" method="POST" action="/pages/<%= page.id %>/delete" onsubmit="return confirm('Remove this page and its post history from Page Manager? This does not delete the Facebook Page itself.');">
+        <button type="submit" class="danger">Remove</button>
+      </form>
+    </div>
+  </div>
+  <div class="muted" style="margin-top:8px;">
+    <%= page.setupPushedAt ? 'Messenger setup last pushed ' + new Date(page.setupPushedAt).toLocaleString() : 'Messenger setup has not been pushed to Facebook yet.' %>
+  </div>
+  <form method="POST" action="/pages/<%= page.id %>/push-setup" style="margin-top:10px;">
+    <button type="submit">Push greeting / ice breakers / menu to Facebook</button>
+  </form>
+</div>
+
+<h2>FAQ bot config</h2>
+<p class="muted">The first 3 topics below become the buttons shown right after the greeting (and the Messenger persistent menu); the first 4 become ice breakers. Order matters.</p>
+
+<div class="card">
+  <form method="POST" action="/pages/<%= page.id %>/faq">
+    <label for="greeting">Greeting message</label>
+    <textarea id="greeting" name="greeting" required><%= page.faq.greeting %></textarea>
+
+    <label for="sessionGapMinutes">Re-greet after this many minutes of silence</label>
+    <input type="number" id="sessionGapMinutes" name="sessionGapMinutes" value="<%= page.faq.sessionGapMinutes %>" min="1" />
+
+    <h2 style="margin-top:24px;">Topics</h2>
+    <%
+      var rows = page.faq.topics.slice();
+      for (var i = 0; i < 3; i++) rows.push({ key: '', question: '', keywords: [], answer: '' });
+    %>
+    <% rows.forEach(function(t) { %>
+      <div class="topic-row">
+        <div class="grid">
+          <div>
+            <label>Key (short code, e.g. HOURS)</label>
+            <input type="text" name="key" value="<%= t.key %>" />
+          </div>
+          <div>
+            <label>Question (shown as button/ice breaker text)</label>
+            <input type="text" name="question" value="<%= t.question %>" />
+          </div>
+        </div>
+        <label>Keywords that trigger this answer (comma-separated)</label>
+        <input type="text" name="keywords" value="<%= t.keywords.join(', ') %>" />
+        <label>Answer</label>
+        <textarea name="answer"><%= t.answer %></textarea>
+      </div>
+    <% }); %>
+
+    <div style="margin-top:16px;">
+      <button type="submit">Save FAQ config</button>
+    </div>
+  </form>
+</div>
+
+<h2>AI booking assistant</h2>
+<p class="muted">When enabled, messages that aren't the greeting are handled by an AI agent that answers using the FAQ topics above and can check availability and book a slot in the services/hours below. Requires <code>ANTHROPIC_API_KEY</code> to be set on the server.</p>
+
+<div class="card">
+  <form method="POST" action="/pages/<%= page.id %>/booking">
+    <label><input type="checkbox" name="enabled" <%= page.booking.enabled ? 'checked' : '' %> style="width:auto;display:inline-block;margin-right:6px;" /> Enable AI booking for this page</label>
+
+    <label for="slotMinutes">Slot size (minutes)</label>
+    <input type="number" id="slotMinutes" name="slotMinutes" value="<%= page.booking.slotMinutes %>" min="5" />
+
+    <h2 style="margin-top:24px;">Weekly hours</h2>
+    <% var dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; %>
+    <% page.booking.hours.forEach(function(h, i) { %>
+      <div class="topic-row">
+        <label>
+          <input type="checkbox" name="closed<%= i %>" <%= !h.closed ? 'checked' : '' %> style="width:auto;display:inline-block;margin-right:6px;" />
+          <%= dayNames[i] %> open
+        </label>
+        <div class="grid">
+          <div>
+            <label>Open</label>
+            <input type="time" name="open<%= i %>" value="<%= h.open %>" />
+          </div>
+          <div>
+            <label>Close</label>
+            <input type="time" name="close<%= i %>" value="<%= h.close %>" />
+          </div>
+        </div>
+      </div>
+    <% }); %>
+
+    <h2 style="margin-top:24px;">Services</h2>
+    <%
+      var serviceRows = page.booking.services.slice();
+      for (var i = 0; i < 3; i++) serviceRows.push({ key: '', name: '', durationMinutes: '', capacityPerSlot: '' });
+    %>
+    <% serviceRows.forEach(function(s) { %>
+      <div class="topic-row">
+        <div class="grid">
+          <div>
+            <label>Key (short code, e.g. HAIRCUT)</label>
+            <input type="text" name="serviceKey" value="<%= s.key %>" />
+          </div>
+          <div>
+            <label>Display name</label>
+            <input type="text" name="serviceName" value="<%= s.name %>" />
+          </div>
+        </div>
+        <div class="grid">
+          <div>
+            <label>Duration (minutes)</label>
+            <input type="number" name="serviceDuration" value="<%= s.durationMinutes %>" min="5" />
+          </div>
+          <div>
+            <label>Capacity per slot</label>
+            <input type="number" name="serviceCapacity" value="<%= s.capacityPerSlot %>" min="1" />
+          </div>
+        </div>
+      </div>
+    <% }); %>
+
+    <div style="margin-top:16px;">
+      <button type="submit">Save booking config</button>
+    </div>
+  </form>
+</div>
+
+<h2>Bookings</h2>
+<% if (bookings.length === 0) { %>
+  <p class="muted">No bookings yet.</p>
+<% } %>
+<% if (bookings.length > 0) { %>
+<div class="card">
+  <table>
+    <thead><tr><th>When</th><th>Service</th><th>Customer</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% bookings.forEach(function(b) { %>
+        <tr>
+          <td><%= b.startTime %> &ndash; <%= b.endTime.slice(11) %></td>
+          <td><%= b.serviceName %></td>
+          <td><%= b.customerName || '(no name given)' %></td>
+          <td><span class="badge <%= b.status === 'confirmed' ? 'on' : 'off' %>"><%= b.status %></span></td>
+          <td>
+            <% if (b.status === 'confirmed') { %>
+              <form class="inline" method="POST" action="/bookings/<%= b.id %>/cancel" onsubmit="return confirm('Cancel this booking?');">
+                <button type="submit" class="danger">Cancel</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+
+<div class="card-row">
+  <h2>Posts</h2>
+  <a class="button" href="/pages/<%= page.id %>/posts/new">+ New post</a>
+</div>
+<% if (posts.length === 0) { %>
+  <p class="muted">No posts yet for this page.</p>
+<% } %>
+<% posts.forEach(function(post) { %>
+  <div class="card">
+    <div class="card-row">
+      <div>
+        <span class="badge <%= post.status %>"><%= post.status %></span>
+        <span class="muted"><%= new Date(post.createdAt).toLocaleString() %></span>
+        <% if (post.scheduledFor) { %><div class="muted">Scheduled for <%= new Date(post.scheduledFor).toLocaleString() %></div><% } %>
+        <p><%= post.message %></p>
+        <% if (post.imageUrl) { %><div class="muted">Image: <%= post.imageUrl %></div><% } %>
+        <% if (post.error) { %><div class="flash error"><%= post.error %></div><% } %>
+      </div>
+      <div>
+        <% if (post.status === 'scheduled') { %>
+          <form class="inline" method="POST" action="/posts/<%= post.id %>/sync"><button type="submit" class="secondary">Check status</button></form>
+          <form class="inline" method="POST" action="/posts/<%= post.id %>/delete" onsubmit="return confirm('Cancel this scheduled post?');"><button type="submit" class="danger">Cancel</button></form>
+        <% } else { %>
+          <form class="inline" method="POST" action="/posts/<%= post.id %>/delete" onsubmit="return confirm('Remove from this list? This will not delete it from Facebook.');"><button type="submit" class="secondary">Remove</button></form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+<% }); %>
+
+<%- include('../partials/footer') %>

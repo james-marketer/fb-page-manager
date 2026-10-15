@@ -1,0 +1,21 @@
+<%- include('../partials/header') %>
+
+<h1>Connect a page</h1>
+<p class="muted">
+  Paste a Page Access Token (Meta Business Suite &rarr; System Users, or the Graph API Explorer while testing).
+  The page's name and ID are fetched automatically and the token is encrypted before it's stored.
+</p>
+
+<div class="card">
+  <% if (error) { %><div class="flash error"><%= error %></div><% } %>
+  <form method="POST" action="/pages/new">
+    <label for="accessToken">Page Access Token</label>
+    <textarea id="accessToken" name="accessToken" required><%= accessToken %></textarea>
+    <div style="margin-top:16px;">
+      <button type="submit">Connect</button>
+      <a class="button secondary" href="/pages">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

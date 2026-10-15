@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+
+<h1>All posts</h1>
+
+<% if (posts.length === 0) { %>
+  <p class="muted">Nothing posted or scheduled yet.</p>
+<% } %>
+
+<table>
+  <thead>
+    <tr><th>Page</th><th>Status</th><th>Message</th><th>When</th><th></th></tr>
+  </thead>
+  <tbody>
+  <% posts.forEach(function(post) { var page = pagesById[post.pageId]; %>
+    <tr>
+      <td><%= page ? page.name : '(removed page)' %></td>
+      <td><span class="badge <%= post.status %>"><%= post.status %></span></td>
+      <td><%= post.message.length > 80 ? post.message.slice(0, 80) + '…' : post.message %></td>
+      <td>
+        <%= post.scheduledFor ? new Date(post.scheduledFor).toLocaleString() : new Date(post.createdAt).toLocaleString() %>
+      </td>
+      <td>
+        <% if (post.status === 'scheduled') { %>
+          <form class="inline" method="POST" action="/posts/<%= post.id %>/sync"><button type="submit" class="secondary">Check</button></form>
+        <% } %>
+      </td>
+    </tr>
+  <% }); %>
+  </tbody>
+</table>
+
+<%- include('../partials/footer') %>

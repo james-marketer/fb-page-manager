@@ -1,0 +1,28 @@
+<%- include('../partials/header') %>
+
+<div class="card-row">
+  <h1>Pages</h1>
+  <a class="button" href="/pages/new">+ Connect a page</a>
+</div>
+
+<% if (pages.length === 0) { %>
+  <p class="muted">No pages connected yet. Click "Connect a page" and paste a Page Access Token to get started.</p>
+<% } %>
+
+<% pages.forEach(function(page) { %>
+  <div class="card">
+    <div class="card-row">
+      <div>
+        <strong><a href="/pages/<%= page.id %>"><%= page.name %></a></strong>
+        <span class="badge <%= page.enabled ? 'on' : 'off' %>"><%= page.enabled ? 'Bot on' : 'Bot off' %></span>
+        <div class="muted">
+          <%= page.faq.topics.length %> FAQ topics ·
+          <%= page.setupPushedAt ? 'Setup pushed ' + new Date(page.setupPushedAt).toLocaleString() : 'Setup not pushed yet' %>
+        </div>
+      </div>
+      <a class="button secondary" href="/pages/<%= page.id %>">Manage</a>
+    </div>
+  </div>
+<% }); %>
+
+<%- include('../partials/footer') %>

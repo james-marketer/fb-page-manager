@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+
+<h1>New post &middot; <%= page.name %></h1>
+
+<div class="card">
+  <% if (error) { %><div class="flash error"><%= error %></div><% } %>
+  <form method="POST" action="/pages/<%= page.id %>/posts">
+    <label for="message">Message</label>
+    <textarea id="message" name="message" required><%= form.message || '' %></textarea>
+
+    <label for="imageUrl">Image URL (optional)</label>
+    <input type="url" id="imageUrl" name="imageUrl" placeholder="https://..." value="<%= form.imageUrl || '' %>" />
+
+    <label for="scheduleAt">Schedule for later (optional &mdash; leave blank to post immediately)</label>
+    <input type="datetime-local" id="scheduleAt" name="scheduleAt" value="<%= form.scheduleAt || '' %>" />
+    <p class="muted">Must be 10 minutes to 75 days from now. Facebook publishes it automatically at that time.</p>
+
+    <div style="margin-top:16px;">
+      <button type="submit">Publish / Schedule</button>
+      <a class="button secondary" href="/pages/<%= page.id %>">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>
